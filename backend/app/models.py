@@ -28,3 +28,15 @@ class Interface(Base):
 
     device_id = Column(Integer, ForeignKey("devices.id"))
     device = relationship("Device", back_populates="interfaces")
+
+
+class Link(Base):
+    __tablename__ = "links"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    local_device_id = Column(Integer)
+    local_port = Column(String)
+
+    remote_device_name = Column(String)
+    remote_port = Column(String)

@@ -16,3 +16,8 @@ def get_db():
 @router.get("/")
 def list_interfaces(db: Session = Depends(get_db)):
     return db.query(models.Interface).all()
+
+
+@router.get("/{device_id}")
+def list_device_interfaces(device_id: int, db: Session = Depends(get_db)):
+    return db.query(models.Interface).filter(models.Interface.device_id == device_id).all()

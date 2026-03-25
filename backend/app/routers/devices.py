@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas
+from app.services.snmp import get_interfaces
 
 router = APIRouter(prefix="/devices", tags=["Devices"])
 
@@ -13,31 +14,44 @@ def get_db():
         db.close()
 
 
-@router.post("/")
-def create_device(device: schemas.DeviceCreate, db: Session = Depends(get_db)):
-    db_device = models.Device(**device.dict(exclude={"interfaces"}))
-    db.add(db_device)
-    db.commit()
-    db.refresh(db_device)
-
-    for iface in device.interfaces:
-        db_iface = models.Interface(**iface.dict(), device_id=db_device.id)
-        db.add(db_iface)
-
-    db.commit()
-
-    return db_device
-
-
-@router.get("/")
+@router.get("/", response_model=list[schemas.Device])
 def list_devices(db: Session = Depends(get_db)):
     return db.query(models.Device).all()
 
 
-@router.delete("/{device_id}")
-def delete_device(device_id: int, db: Session = Depends(get_db)):
-    device = db.query(models.Device).get(device_id)
-    if device:
-        db.delete(device)
-        db.commit()
-    return {"status": "deleted"}
+@router.post("/{device_id}/discover")
+def discover_device(device_id: int, db: Session = Depends(get_db)):
+    device = db.query(models.Device).filter(models.Device.id == device_id).first()
+
+    if not device:
+        return {"error": "Device not found"}
+
+    interfaces = get_interfaces(device.ip, device.snmp_community)
+
+    count = 0
+
+    for iface in interfaces:
+        exists = db.query(models.Interface).filter_by(
+            device_id=device.id,
+            name=iface["name"]
+        ).first()
+
+        if not exists:
+            new_iface = models.Interface(
+                name=iface["name"],
+                description=iface["description"],
+                status="unknown",
+                device_id=device.id
+            )
+            db.add(new_iface)
+            count += 1
+
+    db.commit()
+
+    return {
+        "status": "ok",
+        "interfaces_found": len(interfaces),
+        "interfaces_added": count
+    }
+
+

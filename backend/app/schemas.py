@@ -35,3 +35,19 @@ class Device(DeviceBase):
 
     class Config:
         from_attributes = True
+
+
+class LinkBase(BaseModel):
+    local_device_id: int
+    local_port: str
+    remote_device_name: str
+    remote_port: str
+
+class LinkCreate(LinkBase):
+    pass
+
+class Link(LinkBase):
+    id: int
+
+    class Config:
+        from_attributes = True
