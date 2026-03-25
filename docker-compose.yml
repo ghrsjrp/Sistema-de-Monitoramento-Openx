@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    container_name: netmon-db
+    restart: always
+    environment:
+      POSTGRES_DB: netmon
+      POSTGRES_USER: netmon
+      POSTGRES_PASSWORD: netmon123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: netmon-api
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "3000:8000" # Adaptado para porta 3000 (requisito do ambiente)
+    volumes:
+      - ./backend:/app
+
+volumes:
+  postgres_data:

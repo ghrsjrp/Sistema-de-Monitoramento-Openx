@@ -1,0 +1,44 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Device {
+  id          String      @id @default(uuid())
+  hostname    String      @unique
+  ipAddress   String      @unique
+  community   String?     // SNMP Community
+  snmpVersion String      @default("2c")
+  vendor      String?
+  model       String?
+  status      String      @default("unknown") // up, down, unknown
+  lastSeen    DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  interfaces  Interface[]
+}
+
+model Interface {
+  id          String   @id @default(uuid())
+  name        String   // e.g., GigabitEthernet0/1
+  index       Int      // ifIndex
+  description String?
+  macAddress  String?
+  ipAddress   String?
+  status      String   @default("unknown") // up, down, unknown
+  speed       BigInt?  // Interface speed in bps
+  deviceId    String
+  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([deviceId, name])
+  @@unique([deviceId, index])
+}
